@@ -1,3 +1,4 @@
+// /client/src/pages/Dashboard.jsx
 import React, { useEffect, useState, useRef } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
@@ -14,11 +15,7 @@ import { Button, Form } from "react-bootstrap";
 import { CSVLink } from "react-csv";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import {
-  getProducts,
-  updateProduct,
-  getStatsSummary,
-} from "../utils/api";
+import { getProducts, updateProduct, getStatsSummary } from "../utils/api";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -77,10 +74,7 @@ export default function Dashboard() {
     sales: s.totalSales,
   }));
 
-  const csvData = [
-    ["Month", "Sales"],
-    ...salesData.map((s) => [s.month, s.sales]),
-  ];
+  const csvData = [["Month", "Sales"], ...salesData.map((s) => [s.month, s.sales])];
 
   const exportPDF = async () => {
     const canvas = await html2canvas(reportRef.current);
@@ -214,7 +208,13 @@ export default function Dashboard() {
                     <tr key={p._id} className={p.quantity < 5 ? "table-danger" : ""}>
                       <td>
                         {p.image ? (
-                          <img src={`http://localhost:5000/uploads/${p.image}`} alt={p.name} width="40" />
+                          <img
+                            src={p.image} // ✅ Base64 image from MongoDB
+                            alt={p.name}
+                            width="40"
+                            height="40"
+                            style={{ objectFit: "cover", borderRadius: "6px" }}
+                          />
                         ) : (
                           <span className="text-muted">No image</span>
                         )}

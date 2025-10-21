@@ -12,7 +12,7 @@ import {
 
 export default function Products() {
   const [products, setProducts] = useState([]);
-  const [form, setForm] = useState({ name: "", sku: "", quantity: "", category: "", image: null });
+  const [form, setForm] = useState({ name: "", sku: "", quantity: "", category: "", image: "" });
   const [search, setSearch] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -21,7 +21,13 @@ export default function Products() {
   const fileRef = useRef(null);
 
   const toast = (msg, color = "#28a745") => {
-    Toastify({ text: msg, duration: 3000, gravity: "top", position: "right", backgroundColor: color }).showToast();
+    Toastify({
+      text: msg,
+      duration: 3000,
+      gravity: "top",
+      position: "right",
+      backgroundColor: color,
+    }).showToast();
   };
 
   useEffect(() => {
@@ -37,14 +43,27 @@ export default function Products() {
     }
   };
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, value, files } = e.target;
-    setForm({ ...form, [name]: files ? files[0] : value });
+    if (files && files[0]) {
+      const base64 = await toBase64(files[0]);
+      setForm({ ...form, image: base64 });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
   };
+
+  const toBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { name, sku, quantity, category, image } = form;
+    const { name, sku, quantity, category } = form;
     if (!name || !sku || !quantity || !category)
       return toast("All fields are required", "#ffc107");
 
@@ -54,22 +73,15 @@ export default function Products() {
     if (duplicate) return toast("Duplicate SKU found", "#ffc107");
 
     try {
-      const payload = new FormData();
-      payload.append("name", name);
-      payload.append("sku", sku);
-      payload.append("quantity", quantity);
-      payload.append("category", category);
-      if (image) payload.append("image", image);
-
       if (editingProduct) {
-        await updateProduct(editingProduct._id, payload);
+        await updateProduct(editingProduct._id, form);
         toast("Product updated");
       } else {
-        await createProduct(payload);
+        await createProduct(form);
         toast("Product created");
       }
 
-      setForm({ name: "", sku: "", quantity: "", category: "", image: null });
+      setForm({ name: "", sku: "", quantity: "", category: "", image: "" });
       setEditingProduct(null);
       setShowModal(false);
       fetchProducts();
@@ -80,7 +92,13 @@ export default function Products() {
 
   const handleEdit = (product) => {
     setEditingProduct(product);
-    setForm({ ...product, image: null });
+    setForm({
+      name: product.name,
+      sku: product.sku,
+      quantity: product.quantity,
+      category: product.category,
+      image: product.image || "",
+    });
     setShowModal(true);
   };
 
@@ -97,8 +115,10 @@ export default function Products() {
   };
 
   const exportCSV = () => {
-    const csvContent = ["Name,SKU,Quantity,Category",
-      ...products.map(p => `${p.name},${p.sku},${p.quantity},${p.category}`)].join("\n");
+    const csvContent = [
+      "Name,SKU,Quantity,Category",
+      ...products.map((p) => `${p.name},${p.sku},${p.quantity},${p.category}`),
+    ].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -146,17 +166,33 @@ export default function Products() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="btn-group">
-          <button className="btn btn-outline-secondary" onClick={exportCSV}>Export CSV</button>
-          <button className="btn btn-outline-secondary" onClick={() => fileRef.current.click()}>Import CSV</button>
-          <input type="file" accept=".csv" ref={fileRef} onChange={importCSV} style={{ display: "none" }} />
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>Add Product</button>
+          <button className="btn btn-outline-secondary" onClick={exportCSV}>
+            Export CSV
+          </button>
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => fileRef.current.click()}
+          >
+            Import CSV
+          </button>
+          <input
+            type="file"
+            accept=".csv"
+            ref={fileRef}
+            onChange={importCSV}
+            style={{ display: "none" }}
+          />
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            Add Product
+          </button>
         </div>
       </div>
 
-      <table className="table table-striped">
+      <table className="table table-striped align-middle">
         <thead className="table-light">
           <tr>
             <th>#</th>
+            <th>Image</th>
             <th onClick={() => setSortField("name")}>Product</th>
             <th onClick={() => setSortField("sku")}>SKU</th>
             <th onClick={() => setSortField("quantity")}>Qty</th>
@@ -168,13 +204,41 @@ export default function Products() {
           {filtered.map((p, i) => (
             <tr key={p._id}>
               <td>{i + 1}</td>
+              <td>
+                {p.image ? (
+                  <img
+                    src={p.image}
+                    alt={p.name}
+                    width="40"
+                    height="40"
+                    style={{ objectFit: "cover", borderRadius: "6px" }}
+                  />
+                ) : (
+                  <span className="text-muted">No image</span>
+                )}
+              </td>
               <td>{p.name}</td>
               <td>{p.sku}</td>
-              <td>{p.quantity} {p.quantity < 5 && <span className="badge bg-danger ms-2">Low</span>}</td>
+              <td>
+                {p.quantity}{" "}
+                {p.quantity < 5 && (
+                  <span className="badge bg-danger ms-2">Low</span>
+                )}
+              </td>
               <td>{p.category}</td>
               <td>
-                <button className="btn btn-sm btn-warning me-2" onClick={() => handleEdit(p)}>Edit</button>
-                <button className="btn btn-sm btn-danger" onClick={() => handleDelete(p._id)}>Delete</button>
+                <button
+                  className="btn btn-sm btn-warning me-2"
+                  onClick={() => handleEdit(p)}
+                >
+                  Edit
+                </button>
+                <button
+                  className="btn btn-sm btn-danger"
+                  onClick={() => handleDelete(p._id)}
+                >
+                  Delete
+                </button>
               </td>
             </tr>
           ))}
@@ -187,13 +251,21 @@ export default function Products() {
             <div className="modal-content">
               <form onSubmit={handleSubmit}>
                 <div className="modal-header">
-                  <h5 className="modal-title">{editingProduct ? "Edit Product" : "Add Product"}</h5>
-                  <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+                  <h5 className="modal-title">
+                    {editingProduct ? "Edit Product" : "Add Product"}
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={() => setShowModal(false)}
+                  ></button>
                 </div>
                 <div className="modal-body">
-                  {["name", "sku", "quantity", "category"].map(field => (
+                  {["name", "sku", "quantity", "category"].map((field) => (
                     <div className="mb-3" key={field}>
-                      <label className="form-label text-capitalize">{field}</label>
+                      <label className="form-label text-capitalize">
+                        {field}
+                      </label>
                       <input
                         type={field === "quantity" ? "number" : "text"}
                         name={field}
@@ -206,14 +278,33 @@ export default function Products() {
                   ))}
                   <div className="mb-3">
                     <label className="form-label">Image</label>
-                    <input type="file" name="image" className="form-control" onChange={handleChange} />
+                    <input
+                      type="file"
+                      name="image"
+                      className="form-control"
+                      accept="image/*"
+                      onChange={handleChange}
+                    />
+                    {form.image && (
+                      <img
+                        src={form.image}
+                        alt="preview"
+                        width="80"
+                        height="80"
+                        className="mt-2 rounded"
+                      />
+                    )}
                   </div>
                 </div>
                 <div className="modal-footer">
                   <button type="submit" className="btn btn-primary">
                     {editingProduct ? "Update" : "Create"}
                   </button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowModal(false)}
+                  >
                     Cancel
                   </button>
                 </div>
