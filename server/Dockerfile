@@ -1,16 +1,31 @@
 # syntax = docker/dockerfile:1
+
+# Adjust NODE_VERSION as desired
 ARG NODE_VERSION=20.16.0
 FROM node:${NODE_VERSION}-slim AS base
-WORKDIR /app/server
-ENV NODE_ENV=production
 
+LABEL fly_launch_runtime="Node.js"
+
+WORKDIR /app/server
+
+ENV NODE_ENV="production"
+
+# --- Build stage ---
 FROM base AS build
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
-COPY package*.json ../
+
+# Copy only server package files to optimize caching
+COPY server/package*.json ./
 RUN npm ci
-COPY . ..
+
+# Copy full app source
+COPY server/ ./
+
+# --- Final stage ---
 FROM base
-COPY --from=build /app /app
+COPY --from=build /app/server /app/server
+
 EXPOSE 3000
+
 CMD ["npm", "start"]
