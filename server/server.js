@@ -10,14 +10,36 @@ const { isAdmin } = require("./middleware/isAdmin");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// =============================
+// ✅ CORS Configuration
+// =============================
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://smart-inventory-and-order-managemen.vercel.app",
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, Postman)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // Allow cookies and auth headers
+  })
+);
+
 app.use(express.json());
 
 // Serve static files (uploads)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// =============================
 // Routes
+// =============================
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const productRoutes = require("./routes/product.routes");
@@ -26,7 +48,7 @@ const supplierRoutes = require("./routes/supplier.routes");
 const orderRoutes = require("./routes/order.routes");
 const statsRoutes = require("./routes/stats.routes");
 
-// Public (no token required)
+// Public routes
 app.use("/api/auth", authRoutes);
 
 // Protected routes (token required)
@@ -42,7 +64,7 @@ app.use("/api/users", verifyToken, isAdmin, userRoutes);
 // Cron jobs
 require("./jobs/lowStock.job");
 
-// ✅ Root route for browser testing
+// ✅ Root route (browser test)
 app.get("/", (req, res) => {
   res.json({
     status: "success",
@@ -50,7 +72,9 @@ app.get("/", (req, res) => {
   });
 });
 
-// MongoDB connection and startup
+// =============================
+// Database connection & startup
+// =============================
 mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
