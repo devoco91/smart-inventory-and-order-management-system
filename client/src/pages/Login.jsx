@@ -11,15 +11,18 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const toast = (msg, color = "#198754") =>
-   Toastify({
-  text: msg,
-  duration: 3000,
-  gravity: "top",
-  position: "right",
-  style: { background: color }, // ✅ new way
-}).showToast();
+  // ✅ Use environment variable for backend URL
+  const API_BASE_URL =
+    import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
+  const toast = (msg, color = "#198754") =>
+    Toastify({
+      text: msg,
+      duration: 3000,
+      gravity: "top",
+      position: "right",
+      style: { background: color },
+    }).showToast();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -29,11 +32,12 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", form);
+      // ✅ Use environment-based API URL
+      const res = await axios.post(`${API_BASE_URL}/auth/login`, form);
       localStorage.setItem("token", res.data.token);
 
-      // ✅ fetch current user
-      const userRes = await axios.get("http://localhost:5000/api/auth/me", {
+      // ✅ Fetch current user
+      const userRes = await axios.get(`${API_BASE_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${res.data.token}` },
       });
       localStorage.setItem("user", JSON.stringify(userRes.data));
@@ -42,7 +46,9 @@ export default function Login() {
       setError("");
       navigate("/");
     } catch (err) {
+      console.error("Login error:", err);
       setError("Invalid credentials");
+      toast("Invalid credentials", "#dc3545");
     } finally {
       setLoading(false);
     }
@@ -63,6 +69,7 @@ export default function Login() {
             required
           />
         </div>
+
         <div className="mb-3">
           <label className="form-label">Password</label>
           <input
@@ -74,11 +81,16 @@ export default function Login() {
             required
           />
         </div>
+
         {error && <div className="alert alert-danger">{error}</div>}
+
         <button type="submit" className="btn btn-primary w-100" disabled={loading}>
           {loading ? (
             <>
-              <span className="spinner-border spinner-border-sm me-2" role="status" />
+              <span
+                className="spinner-border spinner-border-sm me-2"
+                role="status"
+              />
               Logging in...
             </>
           ) : (
