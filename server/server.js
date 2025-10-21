@@ -10,7 +10,6 @@ const { isAdmin } = require("./middleware/isAdmin");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -63,8 +62,8 @@ mongoose
       console.log("👑 Admin user created: admin / adminpass");
     }
 
-   app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
   })
   .catch((err) => console.error("❌ MongoDB connection error:", err));
