@@ -42,6 +42,14 @@ app.use("/api/users", verifyToken, isAdmin, userRoutes);
 // Cron jobs
 require("./jobs/lowStock.job");
 
+// ✅ Root route for browser testing
+app.get("/", (req, res) => {
+  res.json({
+    status: "success",
+    message: "🚀 Smart Inventory API is running successfully!",
+  });
+});
+
 // MongoDB connection and startup
 mongoose
   .connect(process.env.MONGO_URI)
