@@ -1,4 +1,3 @@
-// /server/server.js
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -15,7 +14,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Serve static images (uploads)
+// Serve static files (uploads)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
@@ -24,13 +23,13 @@ const userRoutes = require("./routes/user.routes");
 const productRoutes = require("./routes/product.routes");
 const customerRoutes = require("./routes/customer.routes");
 const supplierRoutes = require("./routes/supplier.routes");
-const orderRoutes = require("./routes/order.routes");         // ✅ Valid, no issue
+const orderRoutes = require("./routes/order.routes");
 const statsRoutes = require("./routes/stats.routes");
 
 // Public (no token required)
 app.use("/api/auth", authRoutes);
 
-// Protected routes
+// Protected routes (token required)
 app.use("/api/products", verifyToken, productRoutes);
 app.use("/api/customers", verifyToken, customerRoutes);
 app.use("/api/suppliers", verifyToken, supplierRoutes);
@@ -43,13 +42,13 @@ app.use("/api/users", verifyToken, isAdmin, userRoutes);
 // Cron jobs
 require("./jobs/lowStock.job");
 
-// Connect and start
+// MongoDB connection and startup
 mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
-    console.log("MongoDB connected");
+    console.log("✅ MongoDB connected");
 
-    // Auto-seed admin
+    // Auto-create admin account if missing
     const User = require("./models/User.model");
     const existingAdmin = await User.findOne({ email: "admin" });
     if (!existingAdmin) {
@@ -60,9 +59,11 @@ mongoose
         role: "admin",
       });
       await admin.save();
-      console.log("✅ Admin user seeded: admin / adminpass");
+      console.log("👑 Admin user created: admin / adminpass");
     }
 
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    app.listen(PORT, () =>
+      console.log(`🚀 Server running on port ${PORT}`)
+    );
   })
-  .catch((err) => console.error("MongoDB connection error:", err));
+  .catch((err) => console.error("❌ MongoDB connection error:", err));

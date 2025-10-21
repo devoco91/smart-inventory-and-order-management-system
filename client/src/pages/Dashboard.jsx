@@ -1,4 +1,3 @@
-// /client/src/pages/Dashboard.jsx
 import React, { useEffect, useState, useRef } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
