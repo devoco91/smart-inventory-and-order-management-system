@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 const allowedOrigins = [
   "http://localhost:5173",
   "https://smart-inventory-and-order-management-system-pxx2i8v2v.vercel.app",
-  "https://smart-inventory-and-order-managemen-omega.vercel.app/"
+  "https://smart-inventory-and-order-managemen-omega.vercel.app"
 ];
 
 app.use(
